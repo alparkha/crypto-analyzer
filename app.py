@@ -7,7 +7,6 @@ import time
 import pyupbit
 from ta.momentum import RSIIndicator
 from ta.trend import MACD
-import playsound
 import os
 
 class CryptoAnalyzer:
@@ -83,12 +82,9 @@ class CryptoAnalyzer:
             signals.append("❌ 단기 하락세")
             signal_strength -= 1
 
-        # 매수 시그널 발생 시 효과음
+        # 매수 시그널 발생 시 표시
         if signal_strength >= 2 and self.last_signal < 2:
-            try:
-                playsound.playsound("buy_signal.mp3", False)
-            except:
-                pass
+            st.balloons()  # Streamlit의 내장 효과 사용
         
         self.last_signal = signal_strength
         
