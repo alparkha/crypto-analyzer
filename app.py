@@ -7,12 +7,11 @@ import time
 import pyupbit
 from ta.momentum import RSIIndicator
 from ta.trend import MACD
-import os
 
 class CryptoAnalyzer:
     def __init__(self, ticker="KRW-BTC"):
         self.ticker = ticker
-        self.last_signal = 0  # 마지막 시그널 저장
+        self.last_signal = 0
         
     def get_current_price(self):
         try:
@@ -84,7 +83,7 @@ class CryptoAnalyzer:
 
         # 매수 시그널 발생 시 표시
         if signal_strength >= 2 and self.last_signal < 2:
-            st.balloons()  # Streamlit의 내장 효과 사용
+            st.success("💎 매수 기회!")
         
         self.last_signal = signal_strength
         
@@ -158,60 +157,56 @@ def main():
     
     # 기본 코인 설정
     tickers = ["KRW-BTC", "KRW-DOGE"]
-    analyzers = {ticker: CryptoAnalyzer(ticker) for ticker in tickers}
     
     # 사이드바 설정
     st.sidebar.title("설정")
     update_interval = st.sidebar.slider("업데이트 주기 (초)", 3, 30, 5)
     
     # 메인 컨테이너
-    main_container = st.container()
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    st.write(f"마지막 업데이트: {current_time}")
     
-    while True:
-        with main_container:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            st.write(f"마지막 업데이트: {current_time}")
-            
-            cols = st.columns(len(tickers))
-            for i, ticker in enumerate(tickers):
-                analyzer = analyzers[ticker]
-                result = analyzer.analyze_signals()
+    cols = st.columns(len(tickers))
+    analyzers = {ticker: CryptoAnalyzer(ticker) for ticker in tickers}
+    
+    for i, ticker in enumerate(tickers):
+        analyzer = analyzers[ticker]
+        result = analyzer.analyze_signals()
+        
+        if result is not None:
+            with cols[i]:
+                # 코인 이름과 가격
+                coin_name = "비트코인" if ticker == "KRW-BTC" else "도지코인"
+                st.subheader(f"{coin_name} ({ticker.replace('KRW-', '')})")
                 
-                if result is not None:
-                    with cols[i]:
-                        # 코인 이름과 가격
-                        coin_name = "비트코인" if ticker == "KRW-BTC" else "도지코인"
-                        st.subheader(f"{coin_name} ({ticker.replace('KRW-', '')})")
-                        
-                        # 가격 정보
-                        price_delta = st.empty()
-                        price_delta.metric(
-                            "현재 가격",
-                            f"{result['current_price']:,}원"
-                        )
-                        
-                        # 시그널 표시
-                        signal_color = get_signal_color(result['signal_strength'])
-                        signal_title, signal_desc = get_signal_message(result['signal_strength'])
-                        
-                        st.markdown(
-                            f'<div style="padding:10px;border-radius:10px;background-color:{signal_color};'
-                            f'color:white;text-align:center;margin:10px 0;">'
-                            f'<h3 style="margin:0">{signal_title}</h3>'
-                            f'<p style="margin:0">{signal_desc}</p>'
-                            '</div>',
-                            unsafe_allow_html=True
-                        )
-                        
-                        # 시그널 목록
-                        for signal in result['signals']:
-                            st.write(signal)
-                        
-                        # 차트
-                        st.plotly_chart(plot_price_chart(result['df'], ticker), use_container_width=True)
-            
-            time.sleep(update_interval)
-            st.experimental_rerun()
+                # 가격 정보
+                st.metric(
+                    "현재 가격",
+                    f"{result['current_price']:,}원"
+                )
+                
+                # 시그널 표시
+                signal_color = get_signal_color(result['signal_strength'])
+                signal_title, signal_desc = get_signal_message(result['signal_strength'])
+                
+                st.markdown(
+                    f'<div style="padding:10px;border-radius:10px;background-color:{signal_color};'
+                    f'color:white;text-align:center;margin:10px 0;">'
+                    f'<h3 style="margin:0">{signal_title}</h3>'
+                    f'<p style="margin:0">{signal_desc}</p>'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+                
+                # 시그널 목록
+                for signal in result['signals']:
+                    st.write(signal)
+                
+                # 차트
+                st.plotly_chart(plot_price_chart(result['df'], ticker), use_container_width=True)
+    
+    time.sleep(update_interval)
+    st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
